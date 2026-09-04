@@ -694,20 +694,15 @@ const productsCol = collection(db, "products");
 const ordersCol = collection(db, "orders");
 const settingsDocRef = doc(db, "settings", "orderSettings");
 let codEnabled = true;
-// Minimum order value, on/off toggle, and shipping cost — all admin
-// controlled from the Settings section, defaulting to the values this
-// app used before this became configurable so nothing changes until
-// the admin explicitly sets something in the admin panel.
-let minOrderEnabled = true;
-let minOrderValue = 300;
+// Shipping cost is still admin controlled from the Settings section.
+// Minimum-order enforcement has been removed from this app — customers
+// can check out with any order amount now.
 let shippingCost = 40;
 
-// Admin panel ke Settings se COD status, minimum order aur shipping live sync hote hain.
+// Admin panel ke Settings se COD status aur shipping live sync hote hain.
 onSnapshot(settingsDocRef, snapshot => {
   const data = snapshot.data();
   codEnabled = data ? data.codEnabled !== false : true;
-  minOrderEnabled = data ? data.minOrderEnabled !== false : true;
-  minOrderValue = data && typeof data.minOrderValue === "number" ? data.minOrderValue : 300;
   shippingCost = data && typeof data.shippingCost === "number" ? data.shippingCost : 40;
   renderCODAvailability();
   renderSummary();
@@ -943,17 +938,6 @@ function checkoutItems(){
 function checkoutSubtotal(){
   return checkoutItems().reduce((a,x)=>a+x.p*x.qty,0);
 }
-function validateOrderMinimum(){
-  if(!minOrderEnabled)return true;
-  let subtotal=checkoutSubtotal();
-  const shipping=shippingCost;
-  if(subtotal+shipping<minOrderValue){
-    const needed=minOrderValue-shipping-subtotal;
-    showNotice("Minimum Order Not Met",`Minimum order value including ₹${shipping} shipping is ₹${minOrderValue}. Add at least ₹${needed} more in products.` ,"OK",null,"warn");
-    return false;
-  }
-  return true;
-}
 let checkoutPincodeInfo=null;
 let pincodeLookupTimer=null;
 async function lookupPincode(pincode, mode="checkout"){
@@ -1016,7 +1000,6 @@ function loadCheckoutAddress(){
 function startCheckout(){
   if(!cart.length){showNotice("Cart is Empty","Please add some products to your cart before proceeding.","OK",null,"info");return}
   if(!logged){showNotice("Login Required","Please login to your account to continue with your order.","Login Now",()=>login(),"lock");return}
-  if(!validateOrderMinimum())return;
   loadCheckoutAddress();
   page("checkoutAddress");
 }
@@ -1050,7 +1033,6 @@ function editCheckoutAddress(){
   page("checkoutAddress");
 }
 function openPayment(){
-  if(!validateOrderMinimum())return;
   renderPayment();
   page("payment");
 }
@@ -1100,10 +1082,9 @@ function updateQrCountdown(){const m=Math.floor(qrSecondsLeft/60),sec=qrSecondsL
 function startQrTimer(){clearInterval(qrTimerInterval);qrSecondsLeft=300;updateQrCountdown();const pageBtn=document.getElementById("paymentActionBtn"),modalBtn=document.getElementById("modalPaymentActionBtn"),modalUtr=document.getElementById("modalUtrInput");if(pageBtn)pageBtn.disabled=false;if(modalBtn){modalBtn.disabled=false;modalBtn.textContent="Confirm Prepaid Order";}document.getElementById("utrInput").disabled=false;if(modalUtr)modalUtr.disabled=false;qrTimerInterval=setInterval(()=>{qrSecondsLeft--;updateQrCountdown();if(qrSecondsLeft<=0){clearInterval(qrTimerInterval);if(pageBtn){pageBtn.disabled=true;pageBtn.textContent="QR Expired";}if(modalBtn){modalBtn.disabled=true;modalBtn.textContent="QR Expired";}document.getElementById("utrInput").disabled=true;if(modalUtr)modalUtr.disabled=true;}},1000);}
 function openPrepaidModal(){const total=checkoutSubtotal()+shippingCost;document.getElementById("modalPrepaidAmount").textContent=money(total);document.getElementById("modalUpiIdValue").textContent=MERCHANT_UPI_ID;document.getElementById("modalUtrInput").value="";renderRealQr(total,"modalQrCodeHolder");document.body.classList.add("prepaid-open");document.getElementById("prepaidModal").classList.add("show");startQrTimer();setTimeout(()=>document.getElementById("modalUtrInput")?.focus(),180);}
 function closePrepaidModal(){clearInterval(qrTimerInterval);document.body.classList.remove("prepaid-open");document.getElementById("prepaidModal").classList.remove("show");}
-async function handlePaymentAction(){if(!validateOrderMinimum())return;const method=document.querySelector('input[name="paymentMethod"]:checked')?.value||"COD";if(method==="COD"){if(!codEnabled){renderPayment();showNotice("COD Unavailable","Cash on Delivery is currently unavailable. Please select Prepaid via UPI.","OK",null,"warn");return;}completePayment();return;}paymentStage="pay";openPrepaidModal();document.getElementById("paymentActionBtn").textContent="UPI Payment Open";}
-function confirmPrepaidFromModal(){if(!validateOrderMinimum())return;if(qrSecondsLeft<=0){showNotice("Payment Window Expired","The 5-minute UPI payment window has expired. Please generate a new QR code.","OK",null,"warn");return}const utr=(document.getElementById("modalUtrInput")?.value||"").trim();if(!utr)return showNotice("UTR Required","Please enter the UTR / UPI transaction ID after completing payment.","OK",null,"warn");if(utr.length<6)return showNotice("Invalid UTR","Please enter a valid UTR / transaction ID.","OK",null,"warn");document.getElementById("utrInput").value=utr;closePrepaidModal();completePayment(utr);}
+async function handlePaymentAction(){const method=document.querySelector('input[name="paymentMethod"]:checked')?.value||"COD";if(method==="COD"){if(!codEnabled){renderPayment();showNotice("COD Unavailable","Cash on Delivery is currently unavailable. Please select Prepaid via UPI.","OK",null,"warn");return;}completePayment();return;}paymentStage="pay";openPrepaidModal();document.getElementById("paymentActionBtn").textContent="UPI Payment Open";}
+function confirmPrepaidFromModal(){if(qrSecondsLeft<=0){showNotice("Payment Window Expired","The 5-minute UPI payment window has expired. Please generate a new QR code.","OK",null,"warn");return}const utr=(document.getElementById("modalUtrInput")?.value||"").trim();if(!utr)return showNotice("UTR Required","Please enter the UTR / UPI transaction ID after completing payment.","OK",null,"warn");if(utr.length<6)return showNotice("Invalid UTR","Please enter a valid UTR / transaction ID.","OK",null,"warn");document.getElementById("utrInput").value=utr;closePrepaidModal();completePayment(utr);}
 async function completePayment(utr){
-  if(!validateOrderMinimum())return;
   const actionBtn=document.getElementById("paymentActionBtn");
   const modalBtn=document.getElementById("modalPaymentActionBtn");
   if(actionBtn)actionBtn.disabled=true;
@@ -1419,7 +1400,7 @@ Object.assign(window,{
   sanitizeDetailQty,sanitizeHomeQty,saveCheckoutAddress,saveProfile,
   selectPayment,sendOtp,setCategory,showNotice,startCheckout,startQrTimer,
   syncOrderStatuses,toast,updateHeaderAccount,updateQrCountdown,
-  validateOrderMinimum,verifyOtp
+  verifyOtp
 });
 
 
