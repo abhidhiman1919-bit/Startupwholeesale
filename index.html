@@ -279,10 +279,10 @@ body{min-height:100vh}
 @media(max-width:760px){
   .header-top{background:#111827}
   .products{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  .product{min-height:325px}
-  .pic{height:135px}
-  .icon-badge{width:74px;height:74px}
-  .icon-badge svg{width:36px;height:36px}
+  .product{min-height:355px}
+  .pic{height:165px}
+  .icon-badge{width:90px;height:90px}
+  .icon-badge svg{width:44px;height:44px}
   .product-actions{grid-template-columns:1fr;gap:5px}
   .buy-now,.add{height:32px;font-size:11px;border-radius:7px}
 }
@@ -358,7 +358,7 @@ body{min-height:100vh}
 .detail-actions .add,.detail-actions .buy-now{height:46px;font-size:14px;flex:1}
 @media(max-width:760px){
  .detail-layout{flex-direction:column;align-items:center;text-align:center}
- .detail-pic{width:min(70vw,280px);height:min(70vw,280px)}
+ .detail-pic{width:min(85vw,320px);height:min(85vw,320px)}
  .detail-pic .icon-badge{width:60%;height:60%}
  .detail-pic .icon-badge svg{width:50%;height:50%}
  .detail-actions{max-width:none;margin-left:auto;margin-right:auto}
@@ -853,14 +853,22 @@ function getDetailQty(){
  const el=document.getElementById("detailQty");
  return Math.max(1,Math.min(999,Number(el?.value)||1));
 }
+function updateDetailPrice(){
+ const priceEl=document.getElementById("detailPrice");
+ if(!priceEl)return;
+ const unitPrice=Number(priceEl.dataset.unitPrice)||0;
+ priceEl.textContent=money(unitPrice*getDetailQty());
+}
 function sanitizeDetailQty(){
  const el=document.getElementById("detailQty");
  if(!el)return;
  el.value=getDetailQty();
+ updateDetailPrice();
 }
 function changeDetailQty(delta){
  const el=document.getElementById("detailQty");if(!el)return;
  el.value=Math.max(1,Math.min(999,(Number(el.value)||1)+delta));
+ updateDetailPrice();
 }
 
 function getHomeQty(id){
@@ -890,7 +898,7 @@ function openProduct(id){
       ${[1,2,3,4,5].map(n=>`<span class="star ${x.rating>=n?'active':''}">★</span>`).join("")}
       <span class="rating-label">${x.rating>0?x.rating+"/5":"Not yet rated"}</span>
     </div>
-    <div class="price">${money(x.p)}</div>
+    <div class="price" id="detailPrice" data-unit-price="${x.p}">${money(x.p)}</div>
     <div class="detail-qty">
       <label for="detailQty">Quantity</label>
       <div class="qty-control">
@@ -906,7 +914,7 @@ function openProduct(id){
    </div>
   </div>`;
  renderRelatedProducts(x.id);
- page("productDetail");
+ page("productDetail",null,"productDetail:"+x.id);
 }
 function renderRelatedProducts(excludeId){
  let current=PRODUCTS.find(p=>p.id===excludeId);
@@ -1157,10 +1165,20 @@ function goBackPage(){
   pageHistory.pop();
   const previous=pageHistory[pageHistory.length-1];
   navigatingBack=true;
-  page(previous);
+  if(previous.startsWith("productDetail:")){
+    const prodId=previous.slice("productDetail:".length);
+    if(PRODUCTS.some(p=>p.id===prodId)){
+      openProduct(prodId);
+    }else{
+      page("home");
+    }
+  }else{
+    page(previous);
+  }
   navigatingBack=false;
 }
-function page(id,btn){
+function page(id,btn,historyKey){
+ historyKey = historyKey || id;
  closeLogin();
  closeNotice();
  if(["orders","orderDetail","cart","checkoutAddress","checkoutSummary","payment","orderSuccess","profile"].includes(id) && !logged){
@@ -1168,7 +1186,7 @@ function page(id,btn){
    return;
  }
  if(document.getElementById("prepaidModal")?.classList.contains("show"))closePrepaidModal();
- if(!navigatingBack && pageHistory[pageHistory.length-1]!==id){ pageHistory.push(id); }
+ if(!navigatingBack && pageHistory[pageHistory.length-1]!==historyKey){ pageHistory.push(historyKey); }
  document.getElementById("siteHeader").classList.toggle("sub-page",id!=="home");
  updateHeaderAccount();
  const back=document.getElementById("globalBack");
