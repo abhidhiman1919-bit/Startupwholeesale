@@ -694,19 +694,23 @@ const productsCol = collection(db, "products");
 const ordersCol = collection(db, "orders");
 const settingsDocRef = doc(db, "settings", "orderSettings");
 let codEnabled = true;
-// Shipping cost is still admin controlled from the Settings section.
-// Minimum-order enforcement has been removed from this app — customers
-// can check out with any order amount now.
+// Shipping cost, minimum order on/off, and minimum order amount are all
+// admin controlled from the Settings section (Firestore: settings/orderSettings).
 let shippingCost = 40;
+let minOrderEnabled = true;
+let minOrderValue = 300;
 
-// Admin panel ke Settings se COD status aur shipping live sync hote hain.
+// Admin panel ke Settings se COD status, shipping, aur minimum order live sync hote hain.
 onSnapshot(settingsDocRef, snapshot => {
   const data = snapshot.data();
   codEnabled = data ? data.codEnabled !== false : true;
   shippingCost = data && typeof data.shippingCost === "number" ? data.shippingCost : 40;
+  minOrderEnabled = data ? data.minOrderEnabled !== false : true;
+  minOrderValue = data && typeof data.minOrderValue === "number" ? data.minOrderValue : 300;
   renderCODAvailability();
   renderSummary();
   renderPayment();
+  renderCart();
 }, error => {
   console.error("COD settings listener error:", error);
 });
@@ -997,8 +1001,15 @@ function loadCheckoutAddress(){
   checkoutPincodeInfo=null;
   if(/^\d{6}$/.test(profileData.pincode||"")) setTimeout(()=>lookupPincode(profileData.pincode,"checkout"),50);
 }
+function minOrderShortfall(subtotal){
+  if(!minOrderEnabled) return 0;
+  const total = subtotal + shippingCost;
+  return total < minOrderValue ? (minOrderValue - total) : 0;
+}
 function startCheckout(){
   if(!cart.length){showNotice("Cart is Empty","Please add some products to your cart before proceeding.","OK",null,"info");return}
+  const shortfall = minOrderShortfall(cart.reduce((a,x)=>a+x.p*x.qty,0));
+  if(shortfall>0){showNotice("Minimum Order Not Reached",`Please add ${money(shortfall)} more worth of products to reach the minimum order value of ${money(minOrderValue)} (including shipping).`,"OK",null,"warn");return}
   if(!logged){showNotice("Login Required","Please login to your account to continue with your order.","Login Now",()=>login(),"lock");return}
   loadCheckoutAddress();
   page("checkoutAddress");
@@ -1008,6 +1019,8 @@ function buyNow(id,amount=1){
   let p=PRODUCTS.find(x=>x.id===id);
   if(!p)return;
   amount=Math.max(1,Math.min(999,Number(amount)||1));
+  const shortfall = minOrderShortfall(p.p*amount);
+  if(shortfall>0){showNotice("Minimum Order Not Reached",`This order is ${money(shortfall)} short of the minimum order value of ${money(minOrderValue)} (including shipping). Please add more items to your cart instead.`,"OK",null,"warn");return}
   cart=[{id:p.id,n:p.n,p:p.p,qty:amount}];
   save();
   if(!logged){showNotice("Login Required","Please login to your account to continue with your order.","Login Now",()=>login(),"lock");return}
@@ -1135,7 +1148,22 @@ function renderCart(){
  let box=document.getElementById("cartList");
  if(!cart.length){box.innerHTML='<div class="empty">Your cart is empty.<br><br>Go to Home and add products.</div>';}
  else box.innerHTML=cart.map(x=>`<div class="row cart-row"><div class="cart-product-info"><b>${x.n}</b><div class="sub">${money(x.p)} each</div></div><div class="cart-row-actions"><div class="qty"><button type="button" onclick="qty('${x.id}',-1)">−</button><b style="margin:0 10px">${x.qty}</b><button type="button" onclick="qty('${x.id}',1)">+</button></div><strong>${money(x.p*x.qty)}</strong><button type="button" class="remove-cart" aria-label="Remove ${x.n}" onclick="removeFromCart('${x.id}')">Remove</button></div></div>`).join("");
- document.getElementById("total").textContent=money(cart.reduce((a,x)=>a+x.p*x.qty,0));
+ const cartSubtotal=cart.reduce((a,x)=>a+x.p*x.qty,0);
+ document.getElementById("total").textContent=money(cartSubtotal);
+ const shortfall=minOrderShortfall(cartSubtotal);
+ let banner=document.getElementById("minOrderBanner");
+ if(cart.length && shortfall>0){
+   if(!banner){
+     banner=document.createElement("div");
+     banner.id="minOrderBanner";
+     banner.style.cssText="margin:10px 0;padding:10px 14px;border-radius:10px;background:#fff3cd;color:#7a5b00;font-size:13px;font-weight:600;text-align:center;";
+     box.parentNode.insertBefore(banner,box.nextSibling);
+   }
+   banner.textContent=`Add ${money(shortfall)} more to reach the minimum order of ${money(minOrderValue)} (incl. shipping)`;
+   banner.style.display="block";
+ } else if(banner){
+   banner.style.display="none";
+ }
 }
 function qty(id,d){let x=cart.find(x=>x.id===id);if(!x)return;x.qty+=d;if(x.qty<1)cart=cart.filter(x=>x.id!==id);save()}
 function removeFromCart(id){const item=cart.find(x=>x.id===id);if(!item)return;cart=cart.filter(x=>x.id!==id);save();toast(`${item.n} removed from cart`);}
