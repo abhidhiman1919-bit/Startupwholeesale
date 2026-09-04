@@ -479,7 +479,7 @@ body{min-height:100vh}
  <button id="globalBack" class="global-back" onclick="goBackPage()" aria-label="Go back">← Back</button>
  
  <section id="home" class="page active">
-  <div class="hero"><div><h1>Wholesale made simple.</h1><p>You can order products from Startup Wholesale for app testing. Minimum Order Value ₹300 including Shipping.</p></div><div class="hero-badge">Trusted Wholesale</div></div>
+  <div class="hero"><div><h1>Wholesale made simple.</h1><p>You can order products from Startup Wholesale for app testing.</p></div><div class="hero-badge">Trusted Wholesale</div></div>
   <div class="section-title"><h2>Featured Products</h2><span class="sub">Bulk pricing • Verified wholesale</span></div>
   <div id="products" class="products"></div>
  </section>
@@ -547,7 +547,7 @@ body{min-height:100vh}
     <div id="summaryItems" class="summary-items"></div>
     <div class="summary-total">
       <div class="amount-line"><span>Product Amount</span><strong id="summaryProductAmount">₹0</strong></div>
-      <div class="amount-line"><span>Shipping</span><strong>₹40</strong></div>
+      <div class="amount-line"><span>Shipping</span><strong id="summaryShipping">₹40</strong></div>
       <div class="amount-line grand"><span>Total Payable</span><strong id="summaryGrandTotal">₹0</strong></div>
     </div>
     <div class="delivery-box">🚚 <strong>Expected Delivery: <span id="deliveryDate"></span></strong><br><span class="sub">Orders are normally delivered by the date shown above.</span></div>
@@ -694,12 +694,24 @@ const productsCol = collection(db, "products");
 const ordersCol = collection(db, "orders");
 const settingsDocRef = doc(db, "settings", "orderSettings");
 let codEnabled = true;
+// Minimum order value, on/off toggle, and shipping cost — all admin
+// controlled from the Settings section, defaulting to the values this
+// app used before this became configurable so nothing changes until
+// the admin explicitly sets something in the admin panel.
+let minOrderEnabled = true;
+let minOrderValue = 300;
+let shippingCost = 40;
 
-// Admin panel ke Settings se COD status live sync hota hai.
+// Admin panel ke Settings se COD status, minimum order aur shipping live sync hote hain.
 onSnapshot(settingsDocRef, snapshot => {
   const data = snapshot.data();
   codEnabled = data ? data.codEnabled !== false : true;
+  minOrderEnabled = data ? data.minOrderEnabled !== false : true;
+  minOrderValue = data && typeof data.minOrderValue === "number" ? data.minOrderValue : 300;
+  shippingCost = data && typeof data.shippingCost === "number" ? data.shippingCost : 40;
   renderCODAvailability();
+  renderSummary();
+  renderPayment();
 }, error => {
   console.error("COD settings listener error:", error);
 });
@@ -924,11 +936,12 @@ function checkoutSubtotal(){
   return checkoutItems().reduce((a,x)=>a+x.p*x.qty,0);
 }
 function validateOrderMinimum(){
+  if(!minOrderEnabled)return true;
   let subtotal=checkoutSubtotal();
-  const shipping=40;
-  if(subtotal+shipping<300){
-    const needed=300-shipping-subtotal;
-    showNotice("Minimum Order Not Met",`Minimum order value including ₹${shipping} shipping is ₹300. Add at least ₹${needed} more in products.` ,"OK",null,"warn");
+  const shipping=shippingCost;
+  if(subtotal+shipping<minOrderValue){
+    const needed=minOrderValue-shipping-subtotal;
+    showNotice("Minimum Order Not Met",`Minimum order value including ₹${shipping} shipping is ₹${minOrderValue}. Add at least ₹${needed} more in products.` ,"OK",null,"warn");
     return false;
   }
   return true;
@@ -1019,7 +1032,8 @@ function renderSummary(){
       <div class="summary-price">${money(x.p*x.qty)}</div>
     </div>`).join("");
   document.getElementById("summaryProductAmount").textContent=money(subtotal);
-  document.getElementById("summaryGrandTotal").textContent=money(subtotal+40);
+  document.getElementById("summaryShipping").textContent=money(shippingCost);
+  document.getElementById("summaryGrandTotal").textContent=money(subtotal+shippingCost);
   let d=new Date(); d.setDate(d.getDate()+6);
   document.getElementById("deliveryDate").textContent=d.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"});
 }
@@ -1034,10 +1048,10 @@ function openPayment(){
 }
 function renderPayment(){
   let subtotal=checkoutSubtotal();
-  const total=subtotal+40;
+  const total=subtotal+shippingCost;
   document.getElementById("paymentAmount").innerHTML=`
     <div class="amount-line"><span>Product Amount</span><strong>${money(subtotal)}</strong></div>
-    <div class="amount-line"><span>Shipping</span><strong>₹40</strong></div>
+    <div class="amount-line"><span>Shipping</span><strong>${money(shippingCost)}</strong></div>
     <div class="amount-line grand"><span>Total Payable</span><strong id="paymentTotal">${money(total)}</strong></div>`;
   paymentStage="select";
   clearInterval(qrTimerInterval);
@@ -1067,7 +1081,7 @@ function selectPayment(method){
     showNotice("COD Unavailable","Cash on Delivery is currently unavailable. Please select Prepaid via UPI.","OK",null,"warn");
     return;
   }
-  document.getElementById("codOption").classList.toggle("selected",method==="COD");document.getElementById("prepaidOption").classList.toggle("selected",method==="PREPAID");paymentStage="select";clearInterval(qrTimerInterval);document.getElementById("prepaidBox").style.display="none";document.getElementById("utrInput").value="";const total=checkoutSubtotal()+40;document.getElementById("paymentTotal").textContent=money(total);const feeLine=document.getElementById("codFeeLine");if(feeLine)feeLine.style.display="none";document.getElementById("paymentActionBtn").disabled=false;document.getElementById("paymentActionBtn").textContent=method==="COD"?"Place COD Order":"Pay Now";
+  document.getElementById("codOption").classList.toggle("selected",method==="COD");document.getElementById("prepaidOption").classList.toggle("selected",method==="PREPAID");paymentStage="select";clearInterval(qrTimerInterval);document.getElementById("prepaidBox").style.display="none";document.getElementById("utrInput").value="";const total=checkoutSubtotal()+shippingCost;document.getElementById("paymentTotal").textContent=money(total);const feeLine=document.getElementById("codFeeLine");if(feeLine)feeLine.style.display="none";document.getElementById("paymentActionBtn").disabled=false;document.getElementById("paymentActionBtn").textContent=method==="COD"?"Place COD Order":"Pay Now";
 }
 const MERCHANT_UPI_ID="BHARATPE2P0T0H6Z3E05213@unitype";
 function buildUpiLink(amount){return `upi://pay?pa=${encodeURIComponent(MERCHANT_UPI_ID)}&pn=${encodeURIComponent("Startup Wholesale")}&am=${Number(amount).toFixed(2)}&cu=INR`;}
@@ -1076,7 +1090,7 @@ function copyUpiId(){const id=MERCHANT_UPI_ID;if(navigator.clipboard&&window.isS
 let paymentStage="select",qrTimerInterval=null,qrSecondsLeft=300;
 function updateQrCountdown(){const m=Math.floor(qrSecondsLeft/60),sec=qrSecondsLeft%60,text=`${String(m).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;const a=document.getElementById("qrTimer");if(a)a.textContent=text;const b=document.getElementById("modalQrTimer");if(b)b.textContent=text;}
 function startQrTimer(){clearInterval(qrTimerInterval);qrSecondsLeft=300;updateQrCountdown();const pageBtn=document.getElementById("paymentActionBtn"),modalBtn=document.getElementById("modalPaymentActionBtn"),modalUtr=document.getElementById("modalUtrInput");if(pageBtn)pageBtn.disabled=false;if(modalBtn){modalBtn.disabled=false;modalBtn.textContent="Confirm Prepaid Order";}document.getElementById("utrInput").disabled=false;if(modalUtr)modalUtr.disabled=false;qrTimerInterval=setInterval(()=>{qrSecondsLeft--;updateQrCountdown();if(qrSecondsLeft<=0){clearInterval(qrTimerInterval);if(pageBtn){pageBtn.disabled=true;pageBtn.textContent="QR Expired";}if(modalBtn){modalBtn.disabled=true;modalBtn.textContent="QR Expired";}document.getElementById("utrInput").disabled=true;if(modalUtr)modalUtr.disabled=true;}},1000);}
-function openPrepaidModal(){const total=checkoutSubtotal()+40;document.getElementById("modalPrepaidAmount").textContent=money(total);document.getElementById("modalUpiIdValue").textContent=MERCHANT_UPI_ID;document.getElementById("modalUtrInput").value="";renderRealQr(total,"modalQrCodeHolder");document.body.classList.add("prepaid-open");document.getElementById("prepaidModal").classList.add("show");startQrTimer();setTimeout(()=>document.getElementById("modalUtrInput")?.focus(),180);}
+function openPrepaidModal(){const total=checkoutSubtotal()+shippingCost;document.getElementById("modalPrepaidAmount").textContent=money(total);document.getElementById("modalUpiIdValue").textContent=MERCHANT_UPI_ID;document.getElementById("modalUtrInput").value="";renderRealQr(total,"modalQrCodeHolder");document.body.classList.add("prepaid-open");document.getElementById("prepaidModal").classList.add("show");startQrTimer();setTimeout(()=>document.getElementById("modalUtrInput")?.focus(),180);}
 function closePrepaidModal(){clearInterval(qrTimerInterval);document.body.classList.remove("prepaid-open");document.getElementById("prepaidModal").classList.remove("show");}
 async function handlePaymentAction(){if(!validateOrderMinimum())return;const method=document.querySelector('input[name="paymentMethod"]:checked')?.value||"COD";if(method==="COD"){if(!codEnabled){renderPayment();showNotice("COD Unavailable","Cash on Delivery is currently unavailable. Please select Prepaid via UPI.","OK",null,"warn");return;}completePayment();return;}paymentStage="pay";openPrepaidModal();document.getElementById("paymentActionBtn").textContent="UPI Payment Open";}
 function confirmPrepaidFromModal(){if(!validateOrderMinimum())return;if(qrSecondsLeft<=0){showNotice("Payment Window Expired","The 5-minute UPI payment window has expired. Please generate a new QR code.","OK",null,"warn");return}const utr=(document.getElementById("modalUtrInput")?.value||"").trim();if(!utr)return showNotice("UTR Required","Please enter the UTR / UPI transaction ID after completing payment.","OK",null,"warn");if(utr.length<6)return showNotice("Invalid UTR","Please enter a valid UTR / transaction ID.","OK",null,"warn");document.getElementById("utrInput").value=utr;closePrepaidModal();completePayment(utr);}
@@ -1088,7 +1102,7 @@ async function completePayment(utr){
   if(modalBtn)modalBtn.disabled=true;
   let method=document.querySelector('input[name="paymentMethod"]:checked')?.value||"COD",
     subtotal=checkoutSubtotal(),
-    total=subtotal+40,
+    total=subtotal+shippingCost,
     orderDate=new Date(),
     delivery=new Date(orderDate);
   delivery.setDate(delivery.getDate()+6);
@@ -1117,7 +1131,7 @@ async function completePayment(utr){
     return;
   }
   const orderId=serverOrder.id;
-  orders.unshift({id:orderId,customerPhone:profileData.phone||"",date:orderDate.toLocaleString("en-IN"),deliveryDate:delivery.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}),subtotal,shipping:40,total,items:orderItems,payment:method,utr:utr||null,status:"PLACED",placedAt:orderDate.getTime(),updatedAt:orderDate.getTime(),address:JSON.parse(JSON.stringify(profileData)),history:[{status:"PLACED",at:orderDate.getTime(),label:"Order Placed"}]});
+  orders.unshift({id:orderId,customerPhone:profileData.phone||"",date:orderDate.toLocaleString("en-IN"),deliveryDate:delivery.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}),subtotal,shipping:shippingCost,total,items:orderItems,payment:method,utr:utr||null,status:"PLACED",placedAt:orderDate.getTime(),updatedAt:orderDate.getTime(),address:JSON.parse(JSON.stringify(profileData)),history:[{status:"PLACED",at:orderDate.getTime(),label:"Order Placed"}]});
   localStorage.setItem("sw_orders",JSON.stringify(orders));
   cart=[];save();
   document.getElementById("successText").textContent=`Order #${orderId} confirmed • ${method==="COD"?"Cash on Delivery":"Prepaid (UPI)"} • Delivery by ${delivery.toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}.`;
