@@ -1,0 +1,7 @@
+{
+  "name": "startup-wholesale",
+  "version": "1.0.0",
+  "description": "Startup Wholesale responsive website",
+  "main": "server.js",
+  "scripts": {"start": "node server.js"}
+}
