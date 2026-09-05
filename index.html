@@ -663,7 +663,7 @@ body{min-height:100vh}
    into it so they show up in the admin panel instantly.
 ========================= */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { initializeApp, getApps, getApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 
 import {
   getFirestore,
@@ -673,8 +673,10 @@ import {
   updateDoc,
   getDoc,
   onSnapshot,
+  getDocs,
   query,
   orderBy,
+  limit,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
@@ -688,10 +690,18 @@ const firebaseConfig = {
   measurementId: "G-0XN4FHEKF5"
 };
 
-const fbApp = initializeApp(firebaseConfig);
+/* getApps().length check: agar yeh script kisi wajah se dobara chal
+   jaaye (jaise ki live-preview/testing tool bina full page reload ke
+   script re-inject kar de) to initializeApp() dobara call karne par
+   "Firebase App named '[DEFAULT]' already exists" error aata hai —
+   aur woh error is poore <script type="module"> ko turant crash kar
+   deta hai, isliye neeche saare functions (setCategory jaisे) window
+   par register hi nahi ho paate the. Ab existing app hi reuse hoga. */
+const fbApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 const productsCol = collection(db, "products");
 const ordersCol = collection(db, "orders");
+const usersCol = collection(db, "users");
 const settingsDocRef = doc(db, "settings", "orderSettings");
 let codEnabled = true;
 // Shipping cost, minimum order on/off, and minimum order amount are all
@@ -754,17 +764,65 @@ function mapApiProduct(p){
     rating:Number(p.rating)||0
   };
 }
-function loadProductsFromServer(){
+/* Poore 300 products ek saath load karne mein sabse zyada time isliye
+   lagta hai kyunki har product ki photo base64 string ke roop mein
+   seedhe uske Firestore document ke andar hi save hai. onSnapshot jab
+   poori "products" collection maangta hai, to Firestore saare 300
+   documents — matlab saari 300 photos bhi — ek hi jhatke mein bhej
+   deta hai, chahe user ne sirf pehla product hi dekha ho.
+   (Note: <img loading="lazy"> yahan kuch madad nahi karta — wo sirf
+   network se aane wali images ko taalta hai, lekin base64 to already
+   document ke andar download ho chuki hoti hai.)
+
+   Pehli baar jo fix kiya tha usme ek chhupi hui gadbad reh gayi thi:
+   pehle 20 products ka listener aur poori 300 products ka listener —
+   dono EK HI SAATH (parallel) shuru ho rahe the. Firestore in dono ko
+   ek hi connection par bhejta hai, to bhaari wali (300 products ki
+   photos) download chhoti wali (20 products) ke saath hi bandwidth
+   ke liye lad rahi thi — isliye "turant" wala hissa bhi turant nahi
+   aa raha tha, khaaskar dheeme mobile net par.
+
+   Ab sahi tareeka: pehle sirf 8 products EK BAAR (getDocs, live
+   listener nahi) turant fetch karo aur dikhado — is chhoti request
+   ko poora bandwidth milta hai, isliye yeh 2-3 second mein aa jaani
+   chahiye. Poori 300 products ki background list SIRF USKE BAAD shuru
+   hoti hai, taaki woh pehli display ko slow na kare.
+
+   Sahi permanent fix (bandwidth kam karna) yeh hai ki list ke liye
+   chhota thumbnail aur poori-quality photo alag-alag store ho — lekin
+   yeh badlaav wahan karna padega jahan admin panel photo save karta
+   hai, is storefront file mein nahi. */
+const PRODUCTS_INITIAL_BATCH = 8;
+let productsFullyLoaded = false;
+
+async function loadProductsFromServer(){
+  // Stage 1 — sirf pehle 8 products, ek baar mein (onSnapshot nahi),
+  // taaki koi doosri request bandwidth na le aur yeh jaldi se jaldi aaye.
+  try{
+    const firstSnap = await getDocs(
+      query(productsCol, orderBy("createdAt","desc"), limit(PRODUCTS_INITIAL_BATCH))
+    );
+    PRODUCTS = firstSnap.docs.map(d=>mapApiProduct({id:d.id,...d.data()}));
+    renderProducts();
+  }catch(error){
+    console.error("Initial products fetch error:",error);
+  }
+
+  // Stage 2 — ab jaake poori inventory ka live listener shuru hota hai
+  // (isse pehle nahi), taaki woh pehli 8 products ke jaldi aane mein
+  // rukaawat na bane. Jab yeh poori list aa jaati hai, chhoti list ki
+  // jagah le leti hai — isse search/category filter sabhi products par
+  // kaam karta hai.
   onSnapshot(
     query(productsCol, orderBy("createdAt","desc")),
     snapshot=>{
+      productsFullyLoaded=true;
       PRODUCTS=snapshot.docs.map(d=>mapApiProduct({id:d.id,...d.data()}));
       renderProducts();
     },
     error=>{
       console.error("Products listener error:",error);
-      PRODUCTS=[];
-      renderProducts();
+      if(!productsFullyLoaded){ PRODUCTS=[]; renderProducts(); }
     }
   );
 }
@@ -790,7 +848,11 @@ let cart=JSON.parse(localStorage.getItem("sw_cart")||"[]"),orders=JSON.parse(loc
 let activeCategory="all";
 let profileData=JSON.parse(localStorage.getItem("sw_profile")||"{}"),logged=localStorage.getItem("sw_login")==="1";
 const money=n=>"₹"+Number(n).toLocaleString("en-IN");
-const save=()=>{localStorage.setItem("sw_cart",JSON.stringify(cart));renderCart()};
+const save=()=>{
+  localStorage.setItem("sw_cart",JSON.stringify(cart));
+  renderCart();
+  if(logged&&profileData.phone)setDoc(doc(usersCol,profileData.phone),{phone:profileData.phone,cart:cart,cartUpdatedAt:serverTimestamp()},{merge:true}).catch(e=>console.error("Cart sync error:",e));
+};
 function toast(t){let x=document.getElementById("toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
 
 function productIcon(type){
@@ -990,7 +1052,9 @@ function saveCheckoutAddress(){
   if(!vals[0]||!/^[0-9]{10}$/.test(vals[1])||!vals[2]||!/^[0-9]{6}$/.test(vals[4])){showNotice("Check Your Details","Please enter a valid name, 10 digit mobile number, address and 6 digit pincode.","OK",null,"warn");return;}
   if(!checkoutPincodeInfo||checkoutPincodeInfo.pincode!==vals[4]){showNotice("Invalid Pincode","Please enter a valid 6-digit Indian pincode and wait for the location to be verified.","OK",null,"warn");return;}
   profileData={name:vals[0],phone:vals[1],address:vals[2],landmark:vals[3],pincode:vals[4],state:checkoutPincodeInfo.state,district:checkoutPincodeInfo.district,postOffice:checkoutPincodeInfo.areas?.[0]||""};
-  localStorage.setItem("sw_profile",JSON.stringify(profileData));renderSummary();page("checkoutSummary");
+  localStorage.setItem("sw_profile",JSON.stringify(profileData));
+  if(profileData.phone)setDoc(doc(usersCol,profileData.phone),{...profileData,updatedAt:serverTimestamp()},{merge:true}).catch(e=>console.error("User sync error:",e));
+  renderSummary();page("checkoutSummary");
 }
 function loadCheckoutAddress(){
   document.getElementById("coName").value=profileData.name||"";
@@ -1280,6 +1344,9 @@ function loginWithPhone(){
     closeLogin();
     updateHeaderAccount();
     toast(existing?"Login successful":"Account created successfully");
+    // Admin panel ke "Customers" tab mein turant dikhne ke liye — phone
+    // number se hi record milta hai, chahe naam/address abhi na diya ho.
+    setDoc(doc(usersCol,p),{phone:p,name:profileData.name||"",address:profileData.address||"",landmark:profileData.landmark||"",pincode:profileData.pincode||"",state:profileData.state||"",district:profileData.district||"",lastLoginAt:serverTimestamp(),cart:cart},{merge:true}).catch(e=>console.error("User sync error:",e));
   };
   if(existing){
     document.getElementById("loginStatus").textContent="Logging you in...";
@@ -1300,6 +1367,7 @@ async function saveProfile(){
  ["name","phone","address","landmark","pincode"].forEach(k=>profileData[k]=document.getElementById(k).value.trim());
  if(info){profileData.state=info.state;profileData.district=info.district;profileData.postOffice=info.areas?.[0]||"";}
  localStorage.setItem("sw_profile",JSON.stringify(profileData));updateHeaderAccount();document.getElementById("profileMsg").textContent="Profile saved successfully.";
+ if(profileData.phone)setDoc(doc(usersCol,profileData.phone),{...profileData,updatedAt:serverTimestamp()},{merge:true}).catch(e=>console.error("User sync error:",e));
 }
 const ORDER_STAGES=[{key:"PLACED",label:"Placed",icon:"✓"},{key:"CONFIRMED",label:"Confirmed",icon:"✓"},{key:"READY_TO_SHIP",label:"Ready to Ship",icon:"▣"},{key:"IN_TRANSIT",label:"In Transit",icon:"↗"},{key:"OUT_FOR_DELIVERY",label:"Out for Delivery",icon:"⌁"},{key:"DELIVERED",label:"Delivered",icon:"✓"},{key:"RTO",label:"RTO",icon:"↩"},{key:"REJECTED",label:"Rejected",icon:"×"}];
 /* Maps the admin panel's backend status values to the keys above */
@@ -1408,7 +1476,16 @@ function placeOrder(){
   startCheckout();
 }
 
-loadProductsFromServer();renderCart();renderOrders();loadProfile();updateHeaderAccount();syncOrderStatuses();
+/* Har init call apne alag try/catch mein — taaki agar inme se ek bhi
+   fail ho jaaye (jaise Firestore se connect na ho paana), to baaki
+   sab aur sabse zaroori Object.assign(window,...) neeche zaroor chale,
+   nahi to sabhi onclick button handlers "not defined" ho jaate hain. */
+try{loadProductsFromServer();}catch(e){console.error("loadProductsFromServer failed:",e);}
+try{renderCart();}catch(e){console.error("renderCart failed:",e);}
+try{renderOrders();}catch(e){console.error("renderOrders failed:",e);}
+try{loadProfile();}catch(e){console.error("loadProfile failed:",e);}
+try{updateHeaderAccount();}catch(e){console.error("updateHeaderAccount failed:",e);}
+try{syncOrderStatuses();}catch(e){console.error("syncOrderStatuses failed:",e);}
 
 /* Expose every function referenced from inline onclick/oninput/onchange
    attributes in the HTML above — needed because this script is now a
