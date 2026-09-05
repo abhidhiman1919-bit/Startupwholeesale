@@ -101,7 +101,7 @@ body{min-height:100vh}
   height:170px;border-radius:12px;background:linear-gradient(145deg,#f1f3f5,#fafafa);
   display:grid;place-items:center;font-size:62px;margin-bottom:14px;border:1px solid #f0f0f0
 }
-.product h3{font-size:16px;margin:0 0 5px}
+.product h3{font-size:16px;margin:0 0 5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .sub{font-size:13px;color:var(--muted)}
 .price{font-size:22px;font-weight:950;color:var(--green);margin:9px 0 13px}
 .add{
@@ -421,8 +421,8 @@ body{min-height:100vh}
 @media(max-width:760px){.prepaid-modal{padding:21px 16px 18px}.modal-qr-holder{width:210px;height:210px;min-width:210px;min-height:210px}.modal-qr-holder canvas{width:190px!important;height:190px!important}.order-detail-card{padding:14px}.order-detail-top{flex-direction:column}.order-detail-grid{grid-template-columns:1fr}.tracking-wrap{padding:12px 0 10px;overflow:visible}.tracking-line{min-width:0;width:100%;grid-template-columns:repeat(8,minmax(0,1fr));overflow:visible}.tracking-line:before{left:6.25%;right:6.25%;top:15px;height:3px}.track-progress{left:6.25%;top:15px;height:3px}.track-icon{width:28px;height:28px;margin-bottom:5px;font-size:10px}.track-label{font-size:8px;line-height:1.12;word-break:break-word}.detail-actions{flex-direction:column}.detail-actions button{width:100%}.order-success{padding:30px 14px 28px}.order-success h2{font-size:23px}.success-check-wrap{width:72px;height:72px;margin-bottom:14px}.success-check{width:52px;height:52px}.success-check svg{width:27px;height:27px}.success-badge-row{gap:6px}.success-badge{padding:6px 8px;font-size:10px}}
 
 
-.cart-row{align-items:center}.cart-product-info{min-width:0}.cart-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}.remove-cart{border:1px solid #fecaca;background:#fff;color:#dc2626;padding:8px 11px;border-radius:8px;font-size:12px;font-weight:850}.remove-cart:hover{background:#fef2f2}.tracking-caption{font-size:12px;color:#6b7280;margin:-8px 0 14px}.tracking-line{display:flex;align-items:flex-start;gap:0;position:relative;padding:8px 4px 2px}.tracking-line:before{content:"";position:absolute;left:7%;right:7%;top:24px;height:4px;background:#e5e7eb;border-radius:999px}.track-progress{position:absolute;left:7%;top:24px;height:4px;background:#149447;border-radius:999px;z-index:0}.track-step{position:relative;z-index:1;flex:1;min-width:0;text-align:center}.track-icon{width:34px;height:34px;border-radius:50%;margin:0 auto 8px;background:#eef1f3;border:2px solid #d8dde2;color:#6b7280;display:grid;place-items:center;font-size:14px;font-weight:950;box-shadow:0 2px 5px rgba(0,0,0,.05)}.track-step.done .track-icon{background:#eaf8ef;border-color:#149447;color:#149447}.track-step.active .track-icon{background:#149447;border-color:#149447;color:#fff;box-shadow:0 0 0 5px rgba(20,148,71,.12),0 5px 12px rgba(20,148,71,.2);animation:trackPulse 1.8s infinite}.track-label{font-size:11px;font-weight:850;color:#7b8187;line-height:1.2}.track-step.done .track-label,.track-step.active .track-label{color:#111827}.track-step.active .track-label{color:#12823f}@keyframes trackPulse{0%,100%{box-shadow:0 0 0 4px rgba(20,148,71,.10),0 5px 12px rgba(20,148,71,.18)}50%{box-shadow:0 0 0 8px rgba(20,148,71,.03),0 6px 16px rgba(20,148,71,.22)}}
-@media(max-width:760px){.cart-row{align-items:flex-start}.cart-row-actions{width:100%;justify-content:flex-start}.tracking-line{overflow-x:auto;padding-bottom:8px}.track-step{min-width:105px}.tracking-line:before{left:52px;right:52px}.track-progress{left:52px}.tracking-caption{margin-top:-4px}}
+.cart-row{align-items:center}.cart-product-info{min-width:0;display:flex;align-items:center;gap:12px}.cart-thumb{width:56px;height:56px;flex:none;border-radius:10px;overflow:hidden;background:linear-gradient(145deg,#f1f3f5,#fafafa);display:grid;place-items:center;border:1px solid #f0f0f0}.cart-thumb img{width:100%;height:100%;object-fit:cover}.cart-thumb .icon-badge{width:32px;height:32px}.cart-thumb .icon-badge svg{width:18px;height:18px}.cart-product-text{min-width:0}.cart-product-name{display:block;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cart-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}.remove-cart{border:1px solid #fecaca;background:#fff;color:#dc2626;padding:8px 11px;border-radius:8px;font-size:12px;font-weight:850}.remove-cart:hover{background:#fef2f2}.tracking-caption{font-size:12px;color:#6b7280;margin:-8px 0 14px}.tracking-line{display:flex;align-items:flex-start;gap:0;position:relative;padding:8px 4px 2px}.tracking-line:before{content:"";position:absolute;left:7%;right:7%;top:24px;height:4px;background:#e5e7eb;border-radius:999px}.track-progress{position:absolute;left:7%;top:24px;height:4px;background:#149447;border-radius:999px;z-index:0}.track-step{position:relative;z-index:1;flex:1;min-width:0;text-align:center}.track-icon{width:34px;height:34px;border-radius:50%;margin:0 auto 8px;background:#eef1f3;border:2px solid #d8dde2;color:#6b7280;display:grid;place-items:center;font-size:14px;font-weight:950;box-shadow:0 2px 5px rgba(0,0,0,.05)}.track-step.done .track-icon{background:#eaf8ef;border-color:#149447;color:#149447}.track-step.active .track-icon{background:#149447;border-color:#149447;color:#fff;box-shadow:0 0 0 5px rgba(20,148,71,.12),0 5px 12px rgba(20,148,71,.2);animation:trackPulse 1.8s infinite}.track-label{font-size:11px;font-weight:850;color:#7b8187;line-height:1.2}.track-step.done .track-label,.track-step.active .track-label{color:#111827}.track-step.active .track-label{color:#12823f}@keyframes trackPulse{0%,100%{box-shadow:0 0 0 4px rgba(20,148,71,.10),0 5px 12px rgba(20,148,71,.18)}50%{box-shadow:0 0 0 8px rgba(20,148,71,.03),0 6px 16px rgba(20,148,71,.22)}}
+@media(max-width:760px){.cart-row{align-items:flex-start}.cart-row-actions{width:100%;justify-content:flex-start}.cart-thumb{width:46px;height:46px}.cart-product-name{max-width:150px}.tracking-line{overflow-x:auto;padding-bottom:8px}.track-step{min-width:105px}.tracking-line:before{left:52px;right:52px}.track-progress{left:52px}.tracking-caption{margin-top:-4px}}
 
 .pincode-status{margin-top:7px;font-size:12px;line-height:1.45;min-height:18px}.pincode-status.ok{color:#15803d}.pincode-status.err{color:#b91c1c}.pincode-status.loading{color:#6b7280}.pincode-meta{margin-top:6px;padding:10px 12px;border:1px solid #dbe7df;border-radius:10px;background:#f7faf8;color:#374151;font-size:12px}.pincode-meta strong{color:#111827}.pincode-invalid{border-color:#dc2626!important}.pincode-valid{border-color:#16a34a!important}
 
@@ -796,8 +796,26 @@ function mapApiProduct(p){
    hai, is storefront file mein nahi. */
 const PRODUCTS_INITIAL_BATCH = 8;
 let productsFullyLoaded = false;
+let productsLoadTimeoutId = null;
+
+// Turant ek loading message dikhado — taaki jab tak data aaye, page
+// khaali/blank na lage. Agar bahut zyada time lag jaaye (network
+// bahut dheema ya atka hua), to "Retry" button wala message dikhega.
+function renderProductsLoadingState(){
+  const el = document.getElementById("products");
+  if(el) el.innerHTML = `<div class="card empty">Products load ho rahe hain, ek pal ruko…</div>`;
+}
+function renderProductsTimeoutState(){
+  const el = document.getElementById("products");
+  if(!el || PRODUCTS.length) return; // agar tab tak data aa gaya, kuch mat karo
+  el.innerHTML = `<div class="card empty">Network dheema lag raha hai, products load hone mein zyada time lag raha hai.<br><button class="add" style="margin-top:12px" onclick="loadProductsFromServer()">Dobara try karein</button></div>`;
+}
 
 async function loadProductsFromServer(){
+  if(!PRODUCTS.length) renderProductsLoadingState();
+  if(productsLoadTimeoutId) clearTimeout(productsLoadTimeoutId);
+  productsLoadTimeoutId = setTimeout(renderProductsTimeoutState, 12000);
+
   // Stage 1 — sirf pehle 8 products, ek baar mein (onSnapshot nahi),
   // taaki koi doosri request bandwidth na le aur yeh jaldi se jaldi aaye.
   try{
@@ -805,6 +823,7 @@ async function loadProductsFromServer(){
       query(productsCol, orderBy("createdAt","desc"), limit(PRODUCTS_INITIAL_BATCH))
     );
     PRODUCTS = firstSnap.docs.map(d=>mapApiProduct({id:d.id,...d.data()}));
+    clearTimeout(productsLoadTimeoutId);
     renderProducts();
   }catch(error){
     console.error("Initial products fetch error:",error);
@@ -819,12 +838,16 @@ async function loadProductsFromServer(){
     query(productsCol, orderBy("createdAt","desc")),
     snapshot=>{
       productsFullyLoaded=true;
+      clearTimeout(productsLoadTimeoutId);
       PRODUCTS=snapshot.docs.map(d=>mapApiProduct({id:d.id,...d.data()}));
       renderProducts();
     },
     error=>{
       console.error("Products listener error:",error);
-      if(!productsFullyLoaded){ PRODUCTS=[]; renderProducts(); }
+      if(!productsFullyLoaded && !PRODUCTS.length){
+        const el = document.getElementById("products");
+        if(el) el.innerHTML = `<div class="card empty">Products load nahi ho paaye. Internet check karke dobara try karein.<br><button class="add" style="margin-top:12px" onclick="loadProductsFromServer()">Dobara try karein</button></div>`;
+      }
     }
   );
 }
@@ -886,7 +909,7 @@ function renderProducts(){
  document.getElementById("products").innerHTML=a.length
  ?a.map(x=>`<article class="card product">
   <div class="pic" onclick="openProduct('${x.id}')">${productMedia(x)}${ratingChip(x)}</div>
-  <h3 onclick="openProduct('${x.id}')">${x.n}</h3>
+  <h3 onclick="openProduct('${x.id}')" title="${x.n}">${x.n}</h3>
   <div class="sub">${x.s}</div>
   <div class="rating" aria-label="Rating for ${x.n}">
     ${[1,2,3,4,5].map(n=>`<span class="star ${x.rating>=n?'active':''}">★</span>`).join("")}
@@ -985,7 +1008,7 @@ function renderRelatedProducts(excludeId){
  if(!others.length)others=PRODUCTS.filter(x=>x.id!==excludeId);
  document.getElementById("relatedProducts").innerHTML=others.map(x=>`<article class="card product">
   <div class="pic" onclick="openProduct('${x.id}')">${productMedia(x)}${ratingChip(x)}</div>
-  <h3 onclick="openProduct('${x.id}')">${x.n}</h3>
+  <h3 onclick="openProduct('${x.id}')" title="${x.n}">${x.n}</h3>
   <div class="sub">${x.s}</div>
   <div class="rating" aria-label="Rating for ${x.n}">
     ${[1,2,3,4,5].map(n=>`<span class="star ${x.rating>=n?'active':''}">★</span>`).join("")}
@@ -1213,7 +1236,11 @@ function renderCart(){
  document.getElementById("count").textContent=cart.reduce((a,x)=>a+x.qty,0);
  let box=document.getElementById("cartList");
  if(!cart.length){box.innerHTML='<div class="empty">Your cart is empty.<br><br>Go to Home and add products.</div>';}
- else box.innerHTML=cart.map(x=>`<div class="row cart-row"><div class="cart-product-info"><b>${x.n}</b><div class="sub">${money(x.p)} each</div></div><div class="cart-row-actions"><div class="qty"><button type="button" onclick="qty('${x.id}',-1)">−</button><b style="margin:0 10px">${x.qty}</b><button type="button" onclick="qty('${x.id}',1)">+</button></div><strong>${money(x.p*x.qty)}</strong><button type="button" class="remove-cart" aria-label="Remove ${x.n}" onclick="removeFromCart('${x.id}')">Remove</button></div></div>`).join("");
+ else box.innerHTML=cart.map(x=>{
+   const prod=PRODUCTS.find(p=>p.id===x.id);
+   const thumb=`<div class="cart-thumb">${prod?productMedia(prod):productIcon("box")}</div>`;
+   return `<div class="row cart-row"><div class="cart-product-info">${thumb}<div class="cart-product-text"><b class="cart-product-name" title="${x.n}">${x.n}</b><div class="sub">${money(x.p)} each</div></div></div><div class="cart-row-actions"><div class="qty"><button type="button" onclick="qty('${x.id}',-1)">−</button><b style="margin:0 10px">${x.qty}</b><button type="button" onclick="qty('${x.id}',1)">+</button></div><strong>${money(x.p*x.qty)}</strong><button type="button" class="remove-cart" aria-label="Remove ${x.n}" onclick="removeFromCart('${x.id}')">Remove</button></div></div>`;
+ }).join("");
  const cartSubtotal=cart.reduce((a,x)=>a+x.p*x.qty,0);
  document.getElementById("total").textContent=money(cartSubtotal);
  const shortfall=minOrderShortfall(cartSubtotal);
