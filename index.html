@@ -200,7 +200,8 @@ body{min-height:100vh}
   .head-actions{margin-left:auto}
   .head-btn{padding:8px 9px;font-size:12px}
   .search{order:3;flex-basis:100%;max-width:none}
-  .nav{padding:7px 3%}
+  .nav{padding:8px 3%;flex-wrap:wrap;overflow:visible;justify-content:center;gap:7px}
+  .nav button{padding:7px 11px;font-size:12.5px;white-space:normal;text-align:center;flex:0 1 auto}
   .wrap{padding:14px 3%}
   .hero{padding:22px;align-items:flex-start}
   .hero h1{font-size:26px}
@@ -226,6 +227,7 @@ body{min-height:100vh}
 .head-btn:hover{border-color:#f4c400}
 .nav{padding-top:9px;padding-bottom:9px}
 .nav button{font-size:14px}
+@media(max-width:760px){.nav button{font-size:12.5px}}
 .nav button.active,.nav button:hover{background:#111827;color:#fff;box-shadow:none}
 .nav button.active{border-bottom:2px solid #f4c400}
 .hero{background:linear-gradient(115deg,#fff8d6,#fff 55%,#f0f5f2);border-color:#e1e4e7}
